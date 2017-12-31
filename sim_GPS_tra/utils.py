@@ -5,7 +5,7 @@ def loadData():
 	
 def distance(p1,p2):
 	try:
-		len(p1) == 3 
+		len(p1) == 3 #debug
 		len(p2) == 3
 	except Exception:
 		print(Exception + '\n your input arg is wrong, retry.');
@@ -38,7 +38,6 @@ def calc_stay_point(data, start, end):
 	
 	stay_point = [sum_x / length_dataset , sum_y/ length_dataset, data[start][2], data[end][2]];
 	
-	
 	return stay_point
 	
 def calc_unique_POI(POI):
@@ -59,15 +58,6 @@ def if_POI_in_region(point,POI):
 			
 	return false
 
-def calc_weight_POI(point, feature):
-	
-	# going on, time to calc ni in weight calc in feature extraction part. Maybe set POI as whole var
-	
-	if_POI_in_region(point, feature)
-
-	weight_feature = 
-	
-	
 	
 	
 	
