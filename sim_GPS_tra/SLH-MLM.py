@@ -1,7 +1,7 @@
 import utils
 import config
 import pandas as pd
-
+import numpy as np
 
 def SLH():
 	
@@ -100,9 +100,52 @@ def feature_vector_extraction(stay_points):
 			N = 0 
 			
 		feature_vectors.setdefault(point, f_v)	
-			
+		config.feature_vectors = feature_vectors
 	return feature_vectors
+
+def generate_location_history_framework(feature_vectors):
 	
+	'''
+		This function is to do clustering alg, then generate tree-structured framework. 
+		Different clustering alg could be defined in config.py
+	'''
+	
+	fv_ndArray = convert_featureVectors_ndArray(feature_vectors)
+	config.clusteringModel(fv_ndArray)
+	
+	#attention, not sure what kind of data the next step need here
+	
+	return true
+
+def build_individual_location_history(semantic_location_tree):
+	#1) Visit tree structure as the order of layer. 
+	#2) alg of this function could be found in Definition 6.
+	#going on 
+	
+	
+	return true
+	
+def conver_featureVectors_ndArray(feature_vectors):
+	'''
+	This function is to convert feature_vectors to the format matched with kmeans alg in scipy lib.
+	this function receive one para: feature_vectors, return an ndArray, stay_point indexes and feature indexes.
+	'''
+	stay_point_index = []
+	feature_index = []
+	data_temp = []
+	
+	for stay_point in feature_vectors.keys:
+	# attention, debug, maybe feature orders is not right, so that ndArray data is not matched
+		stay_point_index.append(stay_point)
+		data_temp.append(feature_vectors[stay_point].values)
+		if len(feature_index) == len(feature_vectors[stay_point].keys):
+			continue
+		for feature in feature_vectors[stay_point].keys:
+			feature_index.append(feature)
+	ndArray = np.array(data_temp)
+	
+	return ndArray, stay_point_index, feature_index
+
 if '__name__' == __main__:
 
 
@@ -110,7 +153,7 @@ if '__name__' == __main__:
 	stay_points = spExtraction()
 	feature_vectors = feature_vector_extraction(stay_points)
 	# going on, time to generate location history framework
-	
+	generate_location_history_framework()
 	
 	
 	

@@ -1,5 +1,15 @@
 import math
 
+class tree_node(object):
+	def __init__(self):
+		self.data = '#'
+		self.left_children = None
+		self.right_children = None
+class tree(tree_node):
+	#create a tree
+	def create_tree(self,t):
+		data = #going on, time to continue to code tree structure.
+	
 def loadData():
 	return 0;
 	
