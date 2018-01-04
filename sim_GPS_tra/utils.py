@@ -5,13 +5,45 @@ class tree_node(object):
 		self.data = '#'
 		self.left_children = None
 		self.right_children = None
+
 class tree(tree_node):
 	#create a tree
 	def create_tree(self,t):
-		data = #going on, time to continue to code tree structure.
+		data = t#going on, time to continue to code tree structure.
+
+def load_POI_dataset():
+	data = []
+	file_obj = open('./POI.txt')
+	for line in file_obj:
+		if 'lng' in line:
+			continue
+		lng = line.split(' ')[0]
+		lat = line.split(' ')[1]
+		cate = line.split(' ')[2]
+		data.append([lng,lat,cate])
+	POI_dataset = np.array(data)
 	
-def loadData():
-	return 0;
+	file_obj.close()
+	return POI_dataset
+		
+def load_stay_points():
+	stay_points = []
+	try:
+		file_obj = open('./stay_point_2017-11-27.txt')
+	except Exception:
+		return false
+		
+	for line in file_obj:
+		if line.split(',')[0] == 'end_time':
+			continue
+		y = line.split(',')[1] 
+		x = line.split(',')[2]
+		end_time = line.split(',')[0]
+		start_time = line.split(',')[4]
+		stay_points.append([x,y,start_time,end_time])
+	file_obj.close()
+	
+	return stay_points
 	
 def distance(p1,p2):
 	try:
@@ -46,7 +78,7 @@ def calc_stay_point(data, start, end):
 		sum_x += point[0];
 		sum_y += point[1];
 	
-	stay_point = [sum_x / length_dataset , sum_y/ length_dataset, data[start][2], data[end][2]];
+	stay_point = [sum_x / length_dataset , sum_y/ length_dataset, data[start][2], data[end][2]]
 	
 	return stay_point
 	

@@ -3,8 +3,9 @@ import utils
 import sklearn.cluster.agglometrativeClustering as AGCL
 
 threshold_time = 1.1
-threshold_distance = 2.2.
+threshold_distance = 2.2
 threshold_GPS_error = 2.2
+data_filePath = 'GPS_data.txt'
 
 '''
 	To generate location history framework, clustering algorithm should be introduced, and the different alg could be defined here.
@@ -24,7 +25,7 @@ POI_data_format = np.array[[x,y,category],[x2,y2,category2]]
 
 stay_points = []
 # POI_dataset = utils.get_POI_dataset()
-POI_dataset = np.array([1,1,'school'],[2.2,3.3,'canteen'])
+POI_dataset = utils.load_POI_dataset() # np.array([1,1,'school'],[2.2,3.3,'canteen'])
 feature_vectors = {} #{sp1:{f1:w1,f2:w2....}}
 
 

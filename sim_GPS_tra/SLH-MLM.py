@@ -35,7 +35,7 @@ def stay_points_extraction(data):
 				else:
 					if (time_i_jm1 > config.threshold_time):
 						# yes, stay here. output i - (j-1)
-						stay_point = calc_stay_point(data,i,j-1);
+						stay_point = utils.calc_stay_point(data,i,j-1);
 						stay_points.append(stay_point)
 						
 					else:
@@ -150,7 +150,9 @@ if '__name__' == __main__:
 
 
 	dataGPS = utils.loadData()
-	stay_points = spExtraction()
+	stay_points = utils.load_stay_points()
+	if stay_points == false:
+		stay_points = spExtraction()
 	feature_vectors = feature_vector_extraction(stay_points)
 	# going on, time to generate location history framework
 	generate_location_history_framework()
