@@ -1,7 +1,8 @@
-import utils
+﻿import utils
 import config
 import pandas as pd
 import numpy as np
+import math
 
 def SLH():
 	
@@ -42,7 +43,6 @@ def stay_points_extraction(data):
 						# not stay, just pass by
 						break; # jump out for j, continue to do i+1;
 						
-	config.stay_points = stay_points
 	return stay_points
 
 def feature_vector_extraction(stay_points):
@@ -53,7 +53,10 @@ def feature_vector_extraction(stay_points):
 	#1) prepare room. dict_feature is to one stay point/region's feature vector, {food: weight, school: weight}
 	# dict_regions_containing_i saves the number of regions that containing a certain feature; {feature1: 3, feature2: 0, ...}
 	
-	unique_POI = set(config.POI_dataset[:,3])
+	unique_POI_temp = set(config.POI_dataset[:,2])
+	unique_POI = []
+	for POI in unique_POI_temp:
+		unique_POI.append(POI)
 	num_unique_POI = len(unique_POI)
 	dict_feature = {}	
 	dict_regions_containing_i = {}
@@ -64,25 +67,24 @@ def feature_vector_extraction(stay_points):
 	#set default value in dict_feature;
 	for i in range(num_unique_POI):
 		dict_feature.setdefault(unique_POI[i], 0)
-		dict_regions_containing_i(unique_POI[i],0)
+		dict_regions_containing_i.setdefault(unique_POI[i],0)
 	
 	#2) calc weight of a certain feature;
 	Ni = 0 #number of POIs of category i located in region 'point'
 	N = 0 #total number of POIs in region 'point'
-	R = len(config.stay_points)
+	R = len(stay_points)
 	
 	# 2.1) this for loop is to calc regions containing i;
 	for point in stay_points:
-		for feature in dict_feature.keys:
-			for POI in config.POI_dataset:
-				if (if_POI_in_region(point,POI)):
-					df_region_feature_temp[feature_POI][str(point)] = 1
-	for feature in dict_feature.keys:
+		for POI in config.POI_dataset:
+			if (if_POI_in_region(point,POI)):
+				df_region_feature_temp[POI[2]][str(point)] = 1
+	for feature in dict_feature.keys():
 		dict_regions_containing_i[feature] = sum(df_region_feature_temp[feature])
 	
 	feature_vectors = {}
 	for point in stay_points:
-		for feature in dict_feature.keys:
+		for feature in dict_feature.keys():
 			#a point is a region
 			#2.2 calc Ni and N;
 			fv = {}
@@ -93,14 +95,14 @@ def feature_vector_extraction(stay_points):
 					
 					if (feature_POI == feature):
 						Ni += 1
-		
+		    # going on, df(region containing i all are 0), debug 
+            
 			weight_feature = Ni/N * math.log(R/dict_regions_containing_i[feature])
 			fv.setdefault(feature, weight_feature)
 			Ni = 0
 			N = 0 
-			
-		feature_vectors.setdefault(point, f_v)	
-		config.feature_vectors = feature_vectors
+			feature_vectors.setdefault(str(point), fv)
+
 	return feature_vectors
 
 def generate_location_history_framework(feature_vectors):
@@ -115,7 +117,21 @@ def generate_location_history_framework(feature_vectors):
 	
 	#attention, not sure what kind of data the next step need here
 	
-	return true
+	return True
+
+def if_POI_in_region(point,POI):
+	'''
+	point defines the region, rect [point-r,point+r] in (x,y) space, POI is the POI waited to be judge whether it's in this region or not.
+	Return true/false: this POI in/not this region(point)
+	'''
+	
+	length_r_lat = config.threshold_GPS_error_lat
+	length_r_lng = config.threshold_GPS_error_lng
+	if float(POI[0]) >= point[0] - length_r_lng and float(POI[0]) <= point[0] + length_r_lng:
+		if float(POI[1]) >= point[1] - length_r_lat and float(POI[1]) <= point[1] + length_r_lat:
+			return True
+			
+	return False
 
 def build_individual_location_history(semantic_location_tree):
 	#1) Visit tree structure as the order of layer. 
@@ -123,39 +139,39 @@ def build_individual_location_history(semantic_location_tree):
 	#going on 
 	
 	
-	return true
+	return True
 	
-def conver_featureVectors_ndArray(feature_vectors):
+def convert_featureVectors_ndArray(feature_vectors):
 	'''
 	This function is to convert feature_vectors to the format matched with kmeans alg in scipy lib.
 	this function receive one para: feature_vectors, return an ndArray, stay_point indexes and feature indexes.
 	'''
 	stay_point_index = []
+	
+	
 	feature_index = []
 	data_temp = []
 	
-	for stay_point in feature_vectors.keys:
+	for stay_point in feature_vectors.keys():
 	# attention, debug, maybe feature orders is not right, so that ndArray data is not matched
 		stay_point_index.append(stay_point)
-		data_temp.append(feature_vectors[stay_point].values)
-		if len(feature_index) == len(feature_vectors[stay_point].keys):
+		data_temp.append(feature_vectors[stay_point].values())
+		if len(feature_index) == len(feature_vectors[stay_point].keys()):
 			continue
-		for feature in feature_vectors[stay_point].keys:
+		for feature in feature_vectors[stay_point].keys():
 			feature_index.append(feature)
 	ndArray = np.array(data_temp)
 	
 	return ndArray, stay_point_index, feature_index
 
-if '__name__' == __main__:
+if __name__ == '__main__':
 
-
-	dataGPS = utils.loadData()
 	stay_points = utils.load_stay_points()
-	if stay_points == false:
+	if stay_points == False:
 		stay_points = spExtraction()
 	feature_vectors = feature_vector_extraction(stay_points)
 	# going on, time to generate location history framework
-	generate_location_history_framework()
+	generate_location_history_framework(feature_vectors)
 	
 	
 	
