@@ -1,17 +1,6 @@
 ﻿import math
 import numpy as np
 
-class tree_node(object):
-    def __init__(self):
-        self.data = '#'
-        self.left_children = None
-        self.right_children = None
-
-class tree(tree_node):
-    #create a tree
-    def create_tree(self,t):
-        data = t#going on, time to continue to code tree structure.
-
 def load_POI_dataset():
     data = []
     file_obj = open('./POI.txt')

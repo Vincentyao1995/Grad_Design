@@ -5,7 +5,7 @@ import math
 
 threshold_time = 1.1
 threshold_distance = 2.2
-threshold_GPS_error_userSetting = 200 # unit: meter
+threshold_GPS_error_userSetting = 100 # unit: meter
 
 latitude = 30.52780029296875 # different city has different latitude leading to different threshold lng error
 threshold_GPS_error_lng = 180 / 6371000 / math.pi / math.cos(latitude) * threshold_GPS_error_userSetting  #纬上跨经，与纬度有关。
@@ -18,7 +18,7 @@ data_filePath = 'GPS_data.txt'
 	Agglomerative clustering alg is used here, u could change it in config file.
 	Algorithm source, see details and para settings: http://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html#sklearn.cluster.AgglomerativeClustering
 '''
-clusteringModel = AGCL(n_clusters = 1, linkage = 'ward', compute_full_tree = True).fit
+clusteringModel = AGCL(n_clusters = 1, linkage = 'ward', compute_full_tree = True)
 
 num_class_kmeans = 8
 num_iteration_kmeans = 10
