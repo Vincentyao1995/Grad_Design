@@ -16,10 +16,10 @@ def load_POI_dataset():
 
     return POI_dataset
         
-def load_stay_points():
+def load_stay_points(filepath):
     stay_points = []
     try:
-        file_obj = open('./stay_point_2017-11-27.txt')
+        file_obj = open(filepath)
     except Exception:
         return false
         

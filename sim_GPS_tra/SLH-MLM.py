@@ -3,12 +3,19 @@ import config
 import pandas as pd
 import numpy as np
 import math
-from anytree import Node, RenderTree
+from anytree import Node, RenderTree, LevelOrderGroupIter, PreOrderIter
 
-def SLH():
-
+def SLH(filepath = './stay_point_2017-11-27.txt'):
     '''
+    history is a list saves ci semantic location history,[ [[index of this level], [c1,c2,c3..]], .....] c1 = [sp1,sp2](Node)
     '''
+    stay_points = utils.load_stay_points()
+    if stay_points == False:
+        stay_points = spExtraction()
+    feature_vectors = feature_vector_extraction(stay_points)
+    # going on, time to generate location history framework
+    history = generate_location_history_framework(feature_vectors) #attention, debug.
+    return history
 
 def stay_points_extraction(data):
 
@@ -117,11 +124,37 @@ def generate_location_history_framework(feature_vectors):
 
     fv_ndArray = convert_featureVectors_ndArray(feature_vectors)
     tree = config.clusteringModel.fit(fv_ndArray[0]).children_
-    root_node = utils.build_tree(feature_vectors, tree, fv_ndArray)
-    # in logic: 
+    root_node = build_tree(feature_vectors, tree, fv_ndArray)
     history = build_individual_location_history(root_node)
     return history
 
+def convert_featureVectors_ndArray(feature_vectors):
+    '''
+    This function is to convert feature_vectors to the format matched with kmeans alg in scipy lib.
+    this function receive one para: feature_vectors, return an ndArray, stay_point indexes and feature indexes.
+    '''
+    stay_point_index = []
+
+
+    feature_index = []
+    data_temp = []
+    data_list_temp = []
+
+    #attention, cuz dict feature vectors are converted to ndarray, if keys in feature_vector[sp] are changing, data would be poluted, we should make sure keys' oder is unchangable
+    for stay_point in feature_vectors.keys():
+        stay_point_index.append(stay_point)
+        if data_temp != []:
+            data_list_temp.append(data_temp)
+        data_temp = []
+        for feature in feature_vectors[stay_point].keys():
+            data_temp.append(feature_vectors[stay_point][feature])
+            if len(feature_index) == len(feature_vectors[stay_point].keys()):
+                continue
+            feature_index.append(feature)
+    data_list_temp.append(data_temp) # append the last stay_point info
+
+    ndArray = np.array(data_list_temp)
+    return ndArray, stay_point_index, feature_index
 
 def build_tree(feature_vectors, tree, fv_ndArray):
     '''
@@ -171,50 +204,68 @@ def if_POI_in_region(point,POI):
 
     return False
 
-def build_individual_location_history(semantic_location_tree):
+def build_individual_location_history(root):
     #1) Visit tree structure as the order of layer.
     #2) alg of this function could be found in Definition 6.
-    #going on
+    nodes_level = [[node for node in children] for children in LevelOrderGroupIter(root)]
+    history = []
+    for i in range(len(nodes_level)):
+        history.append([])
+        history[i].append([])
+        history[i].append([])
+        for j in range(len(nodes_level[i])):
+            history[i][1].append([node for node in PreOrderIter(nodes_level[i][j])])
+        
+        index_of_this_level = get_index_in_tree_level(history[i][1])
+        history[i][0] = index_of_this_level
+      
+    return history
+
+def get_index_in_tree_level(list):
+    ori_list = list
+    index = []
+    earliest_time = -1# this should be earlist node. for loop to find it.
+    earliest_point = -1
+    earliest_index = -1
+    while found_done == 0:
+
+        for c_index in range(len(list)):
+            for stay_point in list[c_index]: # sp info saved in a Node
+                #resolve string and get the earliest visiting node.
+                if len((stay_point.name).split(',')) == 4: # this Node is a leave which saves info of sp, other else this would be a inter-node.
+                    if (stay_point.name).split(',')[2] < early_time:  # start time.
+                       earliest_time = stay_point.name.split(',')[2]
+                       earliest_point = stay_point
+                       earliest_index = c_index
+                else:
+                    sp_index += 1
+                    continue
+        list[earliest_index].remove(earliest_point)
+        index.append(earliest_index)
+        #judge whether there is still any sp not get indexed.
+        condition_found_done = 1
+        for c in list:
+            for sp in c:
+                if len((stay_point.name).split(',')) == 4:
+                    condition_found_done = 0
+        if condition_found_done:
+            found_done = 1
+    return index
+
+def build_graph(history1, history2):
+    for c1 in history1:
+        for c2 in history2:
+            if judge_whether_equal(c1[1],c1[2]):
 
 
+def judge_whether_equal(c1,c2):
     return True
-
-def convert_featureVectors_ndArray(feature_vectors):
-    '''
-    This function is to convert feature_vectors to the format matched with kmeans alg in scipy lib.
-    this function receive one para: feature_vectors, return an ndArray, stay_point indexes and feature indexes.
-    '''
-    stay_point_index = []
-
-
-    feature_index = []
-    data_temp = []
-    data_list_temp = []
-
-    #attention, cuz dict feature vectors are converted to ndarray, if keys in feature_vector[sp] are changing, data would be poluted, we should make sure keys' oder is unchangable
-    for stay_point in feature_vectors.keys():
-        stay_point_index.append(stay_point)
-        if data_temp != []:
-            data_list_temp.append(data_temp)
-        data_temp = []
-        for feature in feature_vectors[stay_point].keys():
-            data_temp.append(feature_vectors[stay_point][feature])
-            if len(feature_index) == len(feature_vectors[stay_point].keys()):
-                continue
-            feature_index.append(feature)
-    data_list_temp.append(data_temp) # append the last stay_point info
-
-    ndArray = np.array(data_list_temp)
-    return ndArray, stay_point_index, feature_index
 
 if __name__ == '__main__':
 
-    stay_points = utils.load_stay_points()
-    if stay_points == False:
-        stay_points = spExtraction()
-    feature_vectors = feature_vector_extraction(stay_points)
-    # going on, time to generate location history framework
-    history = generate_location_history_framework(feature_vectors)
-    graph = build_graph(history)
+    history1 = SLH('./stay_point_2017-11-27.txt')
+    history2 = SLH('./stay_point_2017-11-27.txt')
+
+    graph = build_graph(history1,history2)
     maximal_match = get_maximal_match(graph)
     similarity = cal_simUser(h1,h2)
