@@ -1,5 +1,24 @@
 ﻿import math
 import numpy as np
+import time
+
+def judge_time_former(strtime1,strtime2):
+    '''
+    this function receive two string time, "2017-10-28 10:00:00"
+    compare the former one return 1 or 2 representing which one is the earlier one.
+    '''
+    try:
+        local_time1 = time.strptime(strtime1.replace('\'',''),' %Y-%m-%d %H:%M:%S')
+        local_time2 = time.strptime(strtime2.replace('\'',''),' %Y-%m-%d %H:%M:%S')
+    except:
+        print("time format error, please check your time in your dataset!\n")
+        exit(0)
+    Itime1 = time.mktime(local_time1)
+    Itime2 = time.mktime(local_time2)
+    if Itime1 - Itime2 > 0:
+        return 2
+    else:
+        return 1
 
 def load_POI_dataset():
     data = []
@@ -16,7 +35,7 @@ def load_POI_dataset():
 
     return POI_dataset
         
-def load_stay_points(filepath):
+def load_stay_points(filepath ):
     stay_points = []
     try:
         file_obj = open(filepath)

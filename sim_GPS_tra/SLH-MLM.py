@@ -5,16 +5,27 @@ import numpy as np
 import math
 from anytree import Node, RenderTree, LevelOrderGroupIter, PreOrderIter
 
+'''
+    Question and influence factor:
+    1) judge_whether_equal(c1,c2). this is to 
+    2) the level of two tree built through two stay points may differ, 
+'''
+stay_points_users = []
+feature_vectors_users = []
+
 def SLH(filepath = './stay_point_2017-11-27.txt'):
     '''
     history is a list saves ci semantic location history,[ [[index of this level], [c1,c2,c3..]], .....] c1 = [sp1,sp2](Node)
     '''
-    stay_points = utils.load_stay_points()
+    global stay_points_users, feature_vectors_users
+    stay_points = utils.load_stay_points(filepath)
+    stay_points_users.append(stay_points)
     if stay_points == False:
         stay_points = spExtraction()
+        stay_points_users.append(stay_points)
     feature_vectors = feature_vector_extraction(stay_points)
-    # going on, time to generate location history framework
-    history = generate_location_history_framework(feature_vectors) #attention, debug.
+    feature_vectors_users.append(feature_vectors)
+    history = generate_location_history_framework(feature_vectors)
     return history
 
 def stay_points_extraction(data):
@@ -100,11 +111,9 @@ def feature_vector_extraction(stay_points):
                 if(if_POI_in_region(point, POI)):
                     N += 1
                     feature_POI = POI[2]
-
                     if (feature_POI == feature):
                         Ni += 1
-            # going on, df(region containing i all are 0), debug
-            if dict_regions_containing_i[feature] == 0:
+            if dict_regions_containing_i[feature] == 0 or N == 0:
                 weight_feature = 0
             else:
                 weight_feature = Ni/N * math.log(R/dict_regions_containing_i[feature])
@@ -177,7 +186,7 @@ def build_tree(feature_vectors, tree, fv_ndArray):
                 nodes.setdefault(tree[i][j], Node(key_sp,parent = None))
                 children_index = tree[i][j] - N
                 for child in tree[children_index]:
-                    if child >= 8:
+                    if child >= N:
                         key_sp = str(child)
                         nodes.setdefault(child,Node(key_sp,parent = None))
                     else:
@@ -205,8 +214,11 @@ def if_POI_in_region(point,POI):
     return False
 
 def build_individual_location_history(root):
-    #1) Visit tree structure as the order of layer.
-    #2) alg of this function could be found in Definition 6.
+    '''
+    1) Visit tree structure as the order of layer.
+    2) alg of this function could be found in Definition 6.
+    3) history is a list  [[level1], [level2] ...[level_n]], level_n is also a list:[[index_of_this_level],[nodes_of_this_level]]
+    '''
     nodes_level = [[node for node in children] for children in LevelOrderGroupIter(root)]
     history = []
     for i in range(len(nodes_level)):
@@ -224,48 +236,191 @@ def build_individual_location_history(root):
 def get_index_in_tree_level(list):
     ori_list = list
     index = []
-    earliest_time = -1# this should be earlist node. for loop to find it.
+    earliest_time = " '2030-11-27 10:05:56'" # this should be earlist node. for loop to find it.
     earliest_point = -1
     earliest_index = -1
-    while found_done == 0:
+    found_done = 0
+    num_sp = 0
+    list_indexed = []
+    #this is to find the number of leave this tree == len(stay_points)
+    for c_index in range(len(list)):
+        for stay_point in list[c_index]:
+            if len((stay_point.name).split(',')) == 4:
+                num_sp += 1
 
+    while found_done == 0:
         for c_index in range(len(list)):
-            for stay_point in list[c_index]: # sp info saved in a Node
+            for stay_point in list[c_index]:
                 #resolve string and get the earliest visiting node.
                 if len((stay_point.name).split(',')) == 4: # this Node is a leave which saves info of sp, other else this would be a inter-node.
-                    if (stay_point.name).split(',')[2] < early_time:  # start time.
-                       earliest_time = stay_point.name.split(',')[2]
-                       earliest_point = stay_point
-                       earliest_index = c_index
+                    if stay_point in list_indexed:
+                        continue
+                    if utils.judge_time_former((stay_point.name).split(',')[2], earliest_time) == 1:  # start time.
+                        earliest_time = stay_point.name.split(',')[2]
+                        earliest_point = stay_point
+                        earliest_index = c_index
                 else:
-                    sp_index += 1
                     continue
-        list[earliest_index].remove(earliest_point)
+        list_indexed.append(earliest_point)
         index.append(earliest_index)
         #judge whether there is still any sp not get indexed.
         condition_found_done = 1
-        for c in list:
-            for sp in c:
-                if len((stay_point.name).split(',')) == 4:
-                    condition_found_done = 0
+
+        if len(list_indexed) != num_sp:
+            earliest_time = " '2030-11-27 10:05:56'"
+            condition_found_done = 0
         if condition_found_done:
             found_done = 1
     return index
 
-def build_graph(history1, history2):
-    for c1 in history1:
-        for c2 in history2:
-            if judge_whether_equal(c1[1],c1[2]):
+def LHM(history1, history2):
+    '''
+    attention: assume that two history tree has the same num of level
+    '''
+    graph = []
+    graph_nodes = []
+    simUser = 0
+    #if len(history1) != len(history2):
+    #    print("two semantic history tree don't have the same levels")
+    #    exit(0)
+
+    for num_level in range(min(len(history1),len(history2))):
+        for index1 in range(len(history1[num_level][1])):
+            semantic_location1 = history1[num_level][1][index1]
+            index_list1 = history1[num_level][0]
+            for index2 in range(len(history2[num_level][1])):
+                semantic_location2 = history2[num_level][1][index2]
+                index_list2 = history2[num_level][0]
+                if judge_semanticLocation_equal(semantic_location1,semantic_location2):
+                    graph_nodes.append([[index_list1,index1,semantic_location1], [index_list2,index2,semantic_location2]])
+        if graph_nodes != []:
+            simSq = maximal_travel_match(graph_nodes)
+            simUser = simUser + simSq* math.pow(2,num_level-1)
+        else:
+            return 0.0
+    return simUser
 
 
-def judge_whether_equal(c1,c2):
-    return True
+def maximal_travel_match(graph_nodes):
+    '''
+    this function realize for l from 2 to k algorithm in paper algrithm3. return similarity between two semantic location sequences(this a a set of semantic location at a layer, calc by all maximal travel match).
+    warning: this function wasn't fully compelted.
+    '''
+    similarity_Sq = 0
+    k = len(graph_nodes)
+    for l in range(2,k):
+        for t in range(1,l):
+            if judge_precedence(graph_nodes[l],graph_nodes[l - t]) or judge_precedence(graph_nodes[l - t],graph_nodes[l]):
+                #attention, should build graph here, but didn't build it, think all (v_l - v_t) is a maximal travel match.
+                #so here, graph_nodes1 and graph_nodes[l-t] is a maximal match couple. calc their similarity and sum. max match length is 2
+                sim_temp1 = judge_semanticLocation_equal(graph_nodes[l][0][2],graph_nodes[l-t][0][2],return_ratio = True)
+                sim_temp2 = judge_semanticLocation_equal(graph_nodes[l][1][2],graph_nodes[l-t][1][2],return_ratio = True)
+                sg = (sim_temp1+sim_temp2)/2 * math.pow(2,math.pow(2,2-1))
+                similarity_Sq += sg
+    length_s1 = len(graph_nodes[0][0][0])
+    length_s2 = len(graph_nodes[0][1][0])
+    similarity_Sq = similarity_Sq/(length_s1*length_s2)
+    return similarity_Sq
 
+def judge_precedence(v_l, v_t):
+    '''
+    this function is to judge whether v_l is the precedence of v_t(see details in paper - Algorithm3.)
+    '''
+    l_former_t_s1 = -1
+    l_former_t_s2 = -1
+    l_former_t = -1
+    for i in range(len(v_l[0][0])):
+        index_temp = v_l[0][0][i]
+        if l_former_t_s1 == 1:
+            break
+        if index_temp == v_l[0][1]:
+            for j in range(i, len(v_l[0][0])):
+                if v_l[0][0][j] == v_t[0][1]:
+                    l_former_t_s1 = 1
+                    break
+    for i in range(len(v_l[1][0])):
+        index_temp = v_l[1][0][i]
+        if l_former_t_s2 == 1:
+            break
+        if index_temp == v_l[1][1]:
+            for j in range(i, len(v_l[1][0])):
+                if v_l[1][0][j] == v_t[1][1]:
+                    l_former_t_s2 = 1
+                    break
+    if l_former_t_s1 == 1 and l_former_t_s2 == 1:
+        l_former_t = 1
+        return True
+    else:
+        return False
+    #attention, here, ignore condition2 in definition8 cuz don't know how to compare two semantic locations' time interval
+
+    
+def judge_semanticLocation_equal(semantic_location1, semantic_location2, return_ratio = False):
+    '''
+    this function is to judge whether two semantic locations are equal, see details and why in algorithm3
+    '''
+    if semantic_location1 == semantic_location2:
+        if return_ratio:
+            return 0.0
+        else:
+            return False
+    length_c = min(len(semantic_location1), len(semantic_location2))
+    num_equal_node = 0
+    for node1 in semantic_location1:
+        if len(node1.name.split(',')) != 4:
+                continue
+        for node2 in semantic_location2:
+            if len(node2.name.split(',')) != 4:
+                continue
+            lat1 = float(node1.name.split(',')[1])
+            lng1 = float(node1.name.split(',')[0].replace('[',''))
+            lat2 = float(node2.name.split(',')[1])
+            lng2 = float(node2.name.split(',')[0].replace('[',''))
+            d_lat = lat1 - lat2
+            d_lng = lng1 - lng2
+            d_x = d_lng * 6371000 * math.pi/180
+            d_y = d_lat * 6371000 * math.cos(lat1)* math.pi/180
+            dis_node1_node2 = math.sqrt(d_x**2 + d_y**2)
+            if dis_node1_node2 <= config.threshold_sp_equal:
+                num_equal_node += 1
+                break
+    if num_equal_node >= float(length_c*config.threshold_c_suqual_ratio):
+        if return_ratio:
+            if float(num_equal_node/length_c) <= 1.0: 
+                return float(num_equal_node/length_c)
+            else:
+                return 1.0
+        else:
+            return True
+    else:
+        if return_ratio:
+            return float(num_equal_node/length_c)
+        else:
+            return False
 if __name__ == '__main__':
 
-    history1 = SLH('./stay_point_2017-11-27.txt')
-    history2 = SLH('./stay_point_2017-11-27.txt')
+    import os
+    similarity = {}
+    similarity_normal = {}
+    rootPath = './data'
+    result_fileName = './simResult.txt'
+    for root, dirs, files in os.walk(rootPath):
+        for i in range(len(files)):
+            for j in range(i,len(files)):
+                history_path1 = rootPath + '/' + files[i]
+                history_path2 = rootPath + '/' + files[j]
+                print(history_path1 + '\t'+ history_path2 + ' is comparing.\n')
+                key = files[i] + ',' + files[j]
+                history1 = SLH(history_path1)
+                history2 = SLH(history_path1)
+                sim_user = LHM(history1,history2)
+                similarity.setdefault(key,sim_user)
+    for key in similarity.keys():
+        normal_value = float(similarity[key]/sum(similarity.values()))
+        similarity_normal[key] = normal_value
+    file = open(result_fileName,'w')
+    file.write(str(similarity))
+    file.write('/n similarity after normalization:\n')
+    file.write(str(similarity_normal))
+    file.close()
 
-    graph = build_graph(history1,history2)
-    maximal_match = get_maximal_match(graph)
-    similarity = cal_simUser(h1,h2)
