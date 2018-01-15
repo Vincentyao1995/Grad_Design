@@ -409,10 +409,10 @@ if __name__ == '__main__':
             for j in range(i,len(files)):
                 history_path1 = rootPath + '/' + files[i]
                 history_path2 = rootPath + '/' + files[j]
-                print(history_path1 + '\t'+ history_path2 + ' is comparing.\n')
+                print(history_path1 + '\t'+ history_path2 + ' is processing.\n')
                 key = files[i] + ',' + files[j]
                 history1 = SLH(history_path1)
-                history2 = SLH(history_path1)
+                history2 = SLH(history_path2)
                 sim_user = LHM(history1,history2)
                 similarity.setdefault(key,sim_user)
     for key in similarity.keys():
@@ -421,6 +421,8 @@ if __name__ == '__main__':
     file = open(result_fileName,'w')
     file.write(str(similarity))
     file.write('/n similarity after normalization:\n')
-    file.write(str(similarity_normal))
+    for key in similarity_normal.keys():
+        file.write(key + ': ' + str(similarity_normal[key]))
+        file.write('\n')
     file.close()
 
