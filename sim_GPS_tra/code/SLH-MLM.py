@@ -5,6 +5,8 @@ import numpy as np
 import math
 from anytree import Node, RenderTree, LevelOrderGroupIter, PreOrderIter
 
+opener_top10 = 0
+
 '''
     Question and influence factor:
     1) judge_whether_equal(c1,c2). this is to 
@@ -397,13 +399,47 @@ def judge_semanticLocation_equal(semantic_location1, semantic_location2, return_
             return float(num_equal_node/length_c)
         else:
             return False
-if __name__ == '__main__':
-
+def simRes_person_others(person = './data/stay_point_2017-11-27.txt', others_path = './data', write_file = False, opener_sorted = False):
+    '''
+        This function is to get most similar person
+        Input:
+        1. person: the person on attention, input this person's stay point file path.
+        2. others_path: input a directory path, other persons' stay points files are in this dir.
+        3.(choose) write_file: write result into txt(simResult_person) or not.
+        4.(choose) opener_sorted: True/False, return sorted basing on similarity result or oringinal one.
+        Output:
+        1. a dictionary which saves this person and all others' similarity.
+        2. a list. if u input arg 'sorted = True', return a sorted list(from top to bottom).
+    '''
+    import os
+    similarity = {}
+    history_path1 = person
+    history1 = SLH(history_path1)
+    for root, dirs, files in os.walk(others_path):
+        for i in range(len(files)):
+            history_path2 = others_path + '/' + files[i]
+            print(person + '\t' + history_path2 + 'is processing.\n')
+            key = person + ',' + files[i]
+            history2 = SLH(history_path2)
+            sim_user = LHM(history1,history2)
+            similarity.setdefault(key,sim_user)
+    if write_file:
+        result_fileName = './simResult_person.txt'
+        file = open(result_fileName,'w')
+        simRes = sorted(similarity.items(), key = lambda x:x[1], reverse = True)
+        for item in simRes:
+            file.write(str(item) + '\n')
+        file.close()
+    if sorted:
+        return sorted(similarity.items(), key = lambda x:x[1], reverse = True)
+    return similarity
+def normal_result():
     import os
     similarity = {}
     similarity_normal = {}
     rootPath = './data'
     result_fileName = './simResult.txt'
+    
     for root, dirs, files in os.walk(rootPath):
         for i in range(len(files)):
             for j in range(i,len(files)):
@@ -419,10 +455,19 @@ if __name__ == '__main__':
         normal_value = float(similarity[key]/sum(similarity.values()))
         similarity_normal[key] = normal_value
     file = open(result_fileName,'w')
+    if opener_top10:
+        top10_fileName = './simResult_top10.txt'
+        file_top10 = open(top10_fileName,'w')
+        sorting_result = sorted(similarity.items(), key = lambda x:x[1],reverse = True)
+        for item in sorting_result:
+            file_top10.write(str(item))
+            file_top10.write('\n')
+        file_top10.close()
     file.write(str(similarity))
-    file.write('/n similarity after normalization:\n')
+    file.write('\n similarity after normalization:\n')
     for key in similarity_normal.keys():
         file.write(key + ': ' + str(similarity_normal[key]))
         file.write('\n')
     file.close()
-
+if __name__ == '__main__':
+    simRes_person_others(write_file = True,opener_sorted = True)
