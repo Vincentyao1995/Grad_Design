@@ -15,18 +15,18 @@ def judge_label(point, POI):
 	for label in POI:
 		area = POI[label]
 		
-		if len(area) <= 2:# if this polygon just define by two coordinate, we judge this polygon is a rectangle defined by two coordinates
-		#第一次测试结果：这个polygon contains的算法没有生效，即使我人眼判定是绝对在矩形框中的，现在推测这是由于创造polygon时的点输入顺序是有影响的。
-			tmp1 = [min(area[0][0],area[1][0]),min(area[0][1],area[1][1])]
-			tmp2 = [max(area[0][0],area[1][0]),max(area[0][1],area[1][1])]
-			
-			if tmp1 in area and tmp2 in area: # if define by (minx,miny),(maxX,maxY)
-				tmp1 = [max(area[0][0],area[1][0]),min(area[0][1],area[1][1])]
-				tmp2 = [min(area[0][0],area[1][0]),max(area[0][1],area[1][1])]
-			area.append(tmp1)
-			area.append(tmp2)
+		if len(area) < 2:
+			print('a POI region define error, go check POI.txt\n')
+			continue
+		if len(area) == 2:# if this polygon just define by two coordinate, we judge this polygon is a rectangle defined by two coordinates
+		#第一次测试结果：这个polygon contains的算法没有生效，即使我人眼判定是绝对在矩形框中的，现在推测这是由于创造polygon时的点输入顺序是有影响的。So we should adjust points' order
+			minX = min(area[0][0],area[1][0])
+			minY = min(area[0][1],area[1][1])
+			maxX = max(area[0][0],area[1][0])
+			maxY = max(area[0][1],area[1][1])
+			area = [(minX,minY),(minX,maxY),(maxX,maxY),(maxX,minY)]
 
-		polygon = Polygon([tuple(p) for p in area])
+		polygon = Polygon(area)
 		mid = np.sum(area, axis = 0)/len(area)
 		distance.setdefault(label, np.linalg.norm(mid - np.array([point[0],point[1]])))
 		if polygon.contains(point_shapely):
@@ -36,7 +36,7 @@ def judge_label(point, POI):
 	# 2) no region contains this point.
 	print('no region contains this point, distance calc mode.\n')
 	return min(distance, key = distance.get)
-	
+	#attention, time to test label correctness. then think about feature vector then input it into nn.
 	
 
 def read_feature(stayPoint_path):
