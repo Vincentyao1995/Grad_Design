@@ -7,7 +7,7 @@ threshold_time = 1.1
 threshold_distance = 2.2
 threshold_GPS_error_userSetting = 100 # unit: meter
 threshold_sp_equal = 200 # this threshold controls maximal distance between two euqal stay point(meter)
-threshold_c_suqual_ratio = 0.5 #this threshold controls how many stay points in semantic location to which the num of equal sp reach could say two c is equal
+threshold_c_equal_ratio = 0.5 #this threshold controls how many stay points in semantic location to which the num of equal sp reach could say two c is equal
 threshold_rou = 0.2
 
 latitude = 30.52780029296875 # different city has different latitude leading to different threshold lng error

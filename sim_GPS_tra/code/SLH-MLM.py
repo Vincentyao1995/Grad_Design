@@ -286,7 +286,7 @@ def LHM(history1, history2):
     #    print("two semantic history tree don't have the same levels")
     #    exit(0)
 
-    for num_level in range(min(len(history1),len(history2))):
+    for num_level in range(min(len(history1),len(history2))): # attention, here I calc sim from the top level, which should be bottom, and ignore top levels when two tree doesn't have same levels.
         for index1 in range(len(history1[num_level][1])):
             semantic_location1 = history1[num_level][1][index1]
             index_list1 = history1[num_level][0]
@@ -298,6 +298,7 @@ def LHM(history1, history2):
         if graph_nodes != []:
             simSq = maximal_travel_match(graph_nodes)
             simUser = simUser + simSq* math.pow(2,num_level-1)
+            graph_nodes = []
         else:
             return 0.0
     return simUser
@@ -386,7 +387,7 @@ def judge_semanticLocation_equal(semantic_location1, semantic_location2, return_
             if dis_node1_node2 <= config.threshold_sp_equal:
                 num_equal_node += 1
                 break
-    if num_equal_node >= float(length_c*config.threshold_c_suqual_ratio):
+    if num_equal_node >= float(length_c*config.threshold_c_equal_ratio):
         if return_ratio:
             if float(num_equal_node/length_c) <= 1.0: 
                 return float(num_equal_node/length_c)

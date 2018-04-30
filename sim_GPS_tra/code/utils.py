@@ -35,7 +35,7 @@ def load_POI_dataset():
 
     return POI_dataset
         
-def load_stay_points(filepath ):
+def load_stay_points(filepath):
     stay_points = []
     try:
         file_obj = open(filepath)

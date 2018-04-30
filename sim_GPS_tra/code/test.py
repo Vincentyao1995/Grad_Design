@@ -1,4 +1,3 @@
 
-d = {'x':3, 'y':2, 'z':1}
-res = sorted(d.items(),key = lambda x:x[1],reverse = True)
-print(res)
+a = [1,2,3,4,5]
+print(a[:-1])
