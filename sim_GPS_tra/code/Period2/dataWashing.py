@@ -1,14 +1,30 @@
 import config
-
+import numpy as np
 train_X, train_Y = [],[]
 
+def combine_fv(fv):
+	# this function is to combine a week's feature vector [{day1},{day2}...] into {day1-7}
+	res = fv[0]
+	for key in res:
+		res[key] = np.array(res[key])
+		for i in range(1,len(fv)):
+			res[key] += np.array(fv[i][key]) 
+	return res
+	
+def normalize(data):
+	#this function is to normalize a data(list, ultimate dimension)
+	length = len(data[0])
+	data = np.array(data,dtype = np.float32)
+	for n in range(length):
+		data[:,n][:] = data[:,n][:]/np.sum(data[:,n])
+	return data
+	
 def judge_label(point, POI):
 	#this function is to judge which POI this point belongs to. 
 	#	1)Basic algorithm uses Python-Shapely to check if a polygon contains a point.
 	#	2)Special circumstance is that all POI don't contain this point, reason is that we ignore some area in the map when we define POI region(polygon define is not full-map-coveraged). Under this, we use min-distance to define this point's type
 	from shapely.geometry import Point
 	from shapely.geometry.polygon import Polygon
-	import numpy as np
 	point_shapely = Point(point[0],point[1])
 	distance = {}# a dict to save distance between point to a polygon.
 	
@@ -19,7 +35,7 @@ def judge_label(point, POI):
 			print('a POI region define error, go check POI.txt\n')
 			continue
 		if len(area) == 2:# if this polygon just define by two coordinate, we judge this polygon is a rectangle defined by two coordinates
-		#第一次测试结果：这个polygon contains的算法没有生效，即使我人眼判定是绝对在矩形框中的，现在推测这是由于创造polygon时的点输入顺序是有影响的。So we should adjust points' order
+		#First Turn Test Result：This polygon contains Alg didn't work, even I judge this point is definitely in a rec box, This is because Polygon make alg is influenced by points' order. So we should adjust points' order correctly.
 			minX = min(area[0][0],area[1][0])
 			minY = min(area[0][1],area[1][1])
 			maxX = max(area[0][0],area[1][0])
@@ -30,11 +46,11 @@ def judge_label(point, POI):
 		mid = np.sum(area, axis = 0)/len(area)
 		distance.setdefault(label, np.linalg.norm(mid - np.array([point[0],point[1]])))
 		if polygon.contains(point_shapely):
-			print('region contains' + str(label)+ '\n')
+			#print('region contains' + str(label)+ '\n')
 			return label
 			
 	# 2) no region contains this point.
-	print('no region contains this point, distance calc mode.\n')
+	#print('no region contains this point, distance calc mode.\n')
 	return min(distance, key = distance.get)
 	#attention, time to test label correctness. then think about feature vector then input it into nn.
 	
@@ -114,18 +130,22 @@ def load_POI(filePath = config.POI_path):
 	return POI
 	
 def data_to_feature(filePath = 'E:\College\大四下\毕设\数据\数据分类\类别1\\'):
-	# this function is to read a classification standard then read all data into train_X and train_Y, 1-weeks' data as one train_X, auto-recognize .txt file name. return train_X and train_Y as lists.
+	# this function is to read a classification standard(dir-setting-based) then read all data into train_X and train_Y, 1-weeks' data as one train_X, auto-recognize .txt file name. return train_X and train_Y as lists.
+	train_X, train_Y = [],[]
 	import os
 	length_label = 0
 	filePath = config.stayPoint_path
 	label_name = os.listdir(filePath)
 	label_length = len(label_name)
+	dict_feature_with_label = {}
 	for label in sorted(label_name):
+		feature_vector = []
 		for root, dirs, files in os.walk(filePath + label):
 			if files:
+				feature_vector.append([])
 				trainData_names = sorted(list(set([file.split('gps')[0] for file in files])))
 				current_name = trainData_names[0]
-				feature_vector = [[]]
+				
 				for file in sorted(files):
 					if file.split('gps')[0] != current_name:
 						trainData_names.remove(current_name)
@@ -135,8 +155,19 @@ def data_to_feature(filePath = 'E:\College\大四下\毕设\数据\数据分类\类别1\\'):
 						
 					else:
 						feature_vector[-1].append(read_feature(root+'\\'+file))
-				for f in feature_vector:
-					train_X.append(f) 
+		dict_feature_with_label.setdefault(label,feature_vector)	
+	
+	# here we got a feature_vector contains a week's feature day by day, now we need to combine them together to get a total-week one.
+	for label in dict_feature_with_label:
+		feature_vector = dict_feature_with_label[label]
+		for week in feature_vector:
+			res = combine_fv(week)
+			#normalize input data(train_X)
+			train_X.append(normalize(list(res.values())))
+			train_Y.append(label)
+
+					
+	return train_X,train_Y
 
 					
 #train_X: [ [feature_vector1], [fv2]... ]
