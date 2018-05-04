@@ -1,4 +1,4 @@
-﻿import dataWashing
+﻿import data_to_feature as DTF
 import math
 import tensorflow as tf
 from datetime import datetime
@@ -26,7 +26,7 @@ from sklearn.metrics import precision_score, recall_score
 def load_data():
 	# this function transfer ['类别1', '类别2', '类别1'..'类别n']共n个类别的m个训练label （train_Y） into [[0,0,0,0,1,0...共n个]...[]](共m个vecotr，vector长度为n)其中vector的第n位表示的类别n的具体是哪个类，可以由label_number_table这个字典得到。{小红：0, ..小明:n} 代表小明是vector[n]位置上的预测数字。如果这个sample是小明，在label集中这个vector[n] == 1 其他都是0。
 	
-    train_X, train_Y = dataWashing.data_to_feature()
+    train_X, train_Y = DTF.data_to_feature()
 	label_number_table = {}
 	index = 0
 	label_num = len(set(train_Y))
