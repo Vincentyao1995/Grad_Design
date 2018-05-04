@@ -4,6 +4,7 @@ import tensorflow as tf
 from datetime import datetime
 import os
 import numpy as np
+from sklearn.metrics import precision_score, recall_score
 
 # neural network with 5 layers
 #
@@ -167,7 +168,7 @@ def train(data, label, learning_rate_in, pkeep_in, n_epochs, batch_size):
                 with open(checkpoint_epoch_path, 'wb') as f:
                     f.write(b'%d' %(epoch + 1))
         saver.save(sess, final_model_path)
-        Y_pred = predictions.eval(feed_dict = {X:X_test, y: Y_test})
+        Y_pred = predictions.eval(feed_dict = {X:X_test, Y_label: Y_test, pkeep: 1.0})
         print('precision_score', precision_score(Y_test, Y_pred))
         print('recall_score', recall_score(Y_test, Y_pred))
         
