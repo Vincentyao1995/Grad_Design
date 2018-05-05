@@ -103,7 +103,7 @@ def train(data, label, learning_rate_in,lr_end, pkeep_in, n_epochs, batch_size):
     Y_test = label[-test_size:]
     print(Y_test)
     
-    random_test = 1.6
+    random_test = 2.3
     X_test = np.append(X_test,data[test_size:int(random_test * test_size)], axis = 0)
     Y_test = np.append(Y_test,label[test_size:int(random_test*test_size)], axis = 0)
     
@@ -179,7 +179,7 @@ def train(data, label, learning_rate_in,lr_end, pkeep_in, n_epochs, batch_size):
             loss_val, summary_str, test_pred, test_acc = sess.run([loss, summary_op, predictions, accuracy], feed_dict = {X: X_test, Y_label: Y_test, pkeep: 1.0})
             
             file_writer.add_summary(summary_str, epoch)
-            if epoch % 3 ==0:
+            if epoch % 10 ==0:
                 #print('train_Y:',Y_batch,'pred_Y',Ylogits)
                 print('Training: Epoch:',epoch, '\t Loss:', loss_train_sum/n_batches, '\tAcc:',acc_train_sum/n_batches)
                 print('Test: Epoch:', epoch, '\tLoss:', loss_val, '\tAcc:', test_acc)
@@ -203,7 +203,7 @@ if __name__ == '__main__':
     X, Y,label_number_table= load_data()
     
     #training times
-    n_epochs = 500
+    n_epochs = 2000
     
     #how many samples train at a time
     batch_size = 2
