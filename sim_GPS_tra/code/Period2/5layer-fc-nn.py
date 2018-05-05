@@ -24,19 +24,19 @@ from sklearn.metrics import precision_score, recall_score
 
 #get feature_vector as train_X, Y is corresponding label
 def load_data():
-	# this function transfer ['类别1', '类别2', '类别1'..'类别n']共n个类别的m个训练label （train_Y） into [[0,0,0,0,1,0...共n个]...[]](共m个vecotr，vector长度为n)其中vector的第n位表示的类别n的具体是哪个类，可以由label_number_table这个字典得到。{小红：0, ..小明:n} 代表小明是vector[n]位置上的预测数字。如果这个sample是小明，在label集中这个vector[n] == 1 其他都是0。
-	
+    # this function transfer ['类别1', '类别2', '类别1'..'类别n']共n个类别的m个训练label （train_Y） into [[0,0,0,0,1,0...共n个]...[]](共m个vecotr，vector长度为n)其中vector的第n位表示的类别n的具体是哪个类，可以由label_number_table这个字典得到。{小红：0, ..小明:n} 代表小明是vector[n]位置上的预测数字。如果这个sample是小明，在label集中这个vector[n] == 1 其他都是0。
+    
     train_X, train_Y = DTF.data_to_feature()
-	label_number_table = {}
-	index = 0
-	label_num = len(set(train_Y))
-	for key in sorted(set(train_Y)):
-		label_number_table.setdefault(key, index)
-		index += 1
-	for index, y in enumerate(train_Y):
-		position = label_number_table[y]
-		train_Y[index] = [0.0 for i in range(label_num)]
-		train_Y[index][position] = 1.0
+    label_number_table = {}
+    index = 0
+    label_num = len(set(train_Y))
+    for key in sorted(set(train_Y)):
+        label_number_table.setdefault(key, index)
+        index += 1
+    for index, y in enumerate(train_Y):
+        position = label_number_table[y]
+        train_Y[index] = [0.0 for i in range(label_num)]
+        train_Y[index][position] = 1.0
     return train_X, train_Y, label_number_table
 
 def random_batch(train_X, train_Y, batch_size):
@@ -50,15 +50,15 @@ def fc_layers(train_X, train_Y):
 
     #feature_length = the total number of POI
     POI_num = int(train_X.shape[1])
-	feature_num = int(train_X.shape[2])
+    feature_num = int(train_X.shape[2])
     label_length = int(train_Y.shape[1])
-	
+    
     #five layers and their number of neurons (the last layer has label_length softmax neurons)
-    L1,L2,L3,L4,L5 = 200,100,60,30,label_length
+    L1,L2,L3,L4,L5 = 100,80,50,30,label_length
 
     #weights initialized with small random values between -0.2 and 0.2
     #When using RELUs, make sure biases are initialized with small *positive* values for example 0.1 = tf.ones([K])/10
-    W1 = tf.Variable(tf.truncated_normal([feature_length,L1],stddev = 0.1))
+    W1 = tf.Variable(tf.truncated_normal([POI_num*feature_num,L1],stddev = 0.1))
     B1 = tf.Variable(tf.ones([L1])/10)
     W2 = tf.Variable(tf.truncated_normal([L1,L2],stddev = 0.1))
     B2 = tf.Variable(tf.ones([L2])/10)
@@ -67,16 +67,20 @@ def fc_layers(train_X, train_Y):
     W4 = tf.Variable(tf.truncated_normal([L3,L4],stddev = 0.1))
     B4 = tf.Variable(tf.ones([L4])/10)
     W5 = tf.Variable(tf.truncated_normal([L4,L5],stddev = 0.1))
-    B5 = tf.Variable(tf.zeros([L5]))
+    B5 = tf.Variable(tf.ones([L5])/10)
 
     #the model, with dropout at each layer
-    XX = tf.reshape(X,[-1, POI_num*feature_num])
+    XX = tf.reshape(train_X,[-1, POI_num*feature_num])
     Y1 = tf.nn.relu(tf.matmul(XX,W1)+B1)
     Y1d = tf.nn.dropout(Y1,pkeep)
 
     Y2 = tf.nn.relu(tf.matmul(Y1d,W2)+B2)
     Y2d = tf.nn.dropout(Y2,pkeep)
 
+    #Ylogits = tf.matmul(Y2d,W3) + B3
+    #Y = tf.nn.softmax(Ylogits)
+    #return Y,Ylogits
+    
     Y3 = tf.nn.relu(tf.matmul(Y2d,W3)+B3)
     Y3d = tf.nn.dropout(Y3,pkeep)
 
@@ -87,15 +91,22 @@ def fc_layers(train_X, train_Y):
     Y = tf.nn.softmax(Ylogits)
     return Y,Ylogits
     
-def train(data, label, learning_rate_in, pkeep_in, n_epochs, batch_size):
+def train(data, label, learning_rate_in,lr_end, pkeep_in, n_epochs, batch_size):
     label_length = label.shape[1]
-	test_ratio = 0.2 
+    test_ratio = 0.10
     test_size = int(len(data)* test_ratio)
     train_X = data[:-test_size]
     train_Y = label[:-test_size]
-    X_test = data[-test_size:]
-    Y_test = label[-test_size:]
 
+
+    X_test = data[-test_size:] 
+    Y_test = label[-test_size:]
+    print(Y_test)
+    
+    random_test = 1.6
+    X_test = np.append(X_test,data[test_size:int(random_test * test_size)], axis = 0)
+    Y_test = np.append(Y_test,label[test_size:int(random_test*test_size)], axis = 0)
+    
     n_inputs1 = len(train_X[0])
     n_inputs2 = len(train_X[0][0])
     with tf.name_scope('input'):
@@ -107,18 +118,18 @@ def train(data, label, learning_rate_in, pkeep_in, n_epochs, batch_size):
     
     with tf.name_scope('loss'):
         #cross-entropy loss function (= -sum(Y_i*log(Yi)) ), normalised for batches of all train X
-        #TensorFlow provides the softmax_cross_entropywith_logits function to avoid numerical stability problems with log(0)which is NaN
-        cross_entropy = tf.nn.softmax_cross_entropywith_logits(logits = Ylogits, labels = Y_label)
+        #TensorFlow provides the softmax_cross_entropy_with_logits function to avoid numerical stability problems with log(0)which is NaN
+        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits = Ylogits, labels = Y_label)
         loss = tf.reduce_mean(cross_entropy, name ='loss')
         loss_summary = tf.summary.scalar('loss', loss)
     
     global_step = tf.Variable(0, trainable = False)
     with tf.name_scope('train'):
-		lr = 0.0001 +  tf.train.exponential_decay(learning_rate_in, step, 2000, 1/math.e)
-		train_step = tf.train.AdamOptimizer(lr).minimize(cross_entropy)
+        lr = lr_end +  tf.train.exponential_decay(learning_rate_in, step, n_epochs, 1/math.e)
+        train_step = tf.train.AdamOptimizer(lr).minimize(cross_entropy)
 
     with tf.name_scope('eval'):
-		predictions = tf.argmax(Ylogits, 1)
+        predictions = tf.argmax(Ylogits, 1)
         correct_prediction = tf.equal(tf.argmax(Y_label, 1), tf.argmax(Y_pred, 1))
         #accuracy of the trained model, between 0(worst) and 1 (best)
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
@@ -155,22 +166,31 @@ def train(data, label, learning_rate_in, pkeep_in, n_epochs, batch_size):
         
         for epoch in range(start_epoch, n_epochs):
         # one training time.
+            acc_train_sum, loss_train_sum = 0.0,0.0
             for batch_index in range(n_batches):
             # one training time concluds n_batches times batch_size size training sample
                 X_batch, Y_batch = random_batch(train_X, train_Y, batch_size)
+                loss_train,summary_str_train, pred_train, acc_train = sess.run([loss, summary_op, predictions, accuracy], feed_dict = {X: X_batch, Y_label: Y_batch, pkeep: pkeep_in, step:epoch})
+                acc_train_sum += acc_train
+                loss_train_sum += loss_train
                 sess.run(train_step, feed_dict = {X: X_batch, Y_label: Y_batch, pkeep: pkeep_in, step:epoch})
+                #print('train_Y:',Y_batch,'pred_Y',pred_train)
+                #print('Training: Epoch:',epoch, '\t Loss:', loss_train, '\tAcc:',acc_train)
             loss_val, summary_str, test_pred, test_acc = sess.run([loss, summary_op, predictions, accuracy], feed_dict = {X: X_test, Y_label: Y_test, pkeep: 1.0})
             
             file_writer.add_summary(summary_str, epoch)
-            if epoch % 50 ==0:
-                print('Epoch:', epoch, '\tLoss:', loss_val, '\tAcc:', test_acc)
+            if epoch % 3 ==0:
+                #print('train_Y:',Y_batch,'pred_Y',Ylogits)
+                print('Training: Epoch:',epoch, '\t Loss:', loss_train_sum/n_batches, '\tAcc:',acc_train_sum/n_batches)
+                print('Test: Epoch:', epoch, '\tLoss:', loss_val, '\tAcc:', test_acc)
+                print('-----------------------------------------------------------------')
                 saver.save(sess, checkpoint_path)
                 with open(checkpoint_epoch_path, 'wb') as f:
                     f.write(b'%d' %(epoch + 1))
         saver.save(sess, final_model_path)
-        Y_pred = predictions.eval(feed_dict = {X:X_test, Y_label: Y_test, pkeep: 1.0})
-        print('precision_score', precision_score(Y_test, Y_pred))
-        print('recall_score', recall_score(Y_test, Y_pred))
+        loss_val, summary_str, test_pred, test_acc = sess.run([loss, summary_op, predictions, accuracy], feed_dict = {X: X_test, Y_label: Y_test, pkeep: 1.0})
+        print('precision_score',test_acc)
+        print('loss', loss_val)
         
         sess.close()
 
@@ -178,24 +198,24 @@ def train(data, label, learning_rate_in, pkeep_in, n_epochs, batch_size):
 if __name__ == '__main__':
 
     print('TensorFlow version ' + tf.__version__)
-    tf.set_random_seed(0) # a
+    tf.set_random_seed(1)
 
-    X, Y = load_data()
+    X, Y,label_number_table= load_data()
     
     #training times
-    n_epochs = 5000
+    n_epochs = 500
     
     #how many samples train at a time
-    batch_size = 3
+    batch_size = 2
     
     #probability of keeping a node during dropout, 1.0 at test time(no dropout) and 0.75 at training time
     pkeep = 0.75
     
     #learning rate decay 
     # the learning rate is : 0.0001 + 0.003 * (1/e)^(step/2000)), i.e. exponential decay from 0.003->0.0001
-    lr = 0.003
-    
-    train(np.array(X), np.array(Y), lr, pkeep, n_epochs, batch_size)
+    lr_start = 0.01
+    lr_end =   0.0001
+    train(np.array(X), np.array(Y), lr_start,lr_end, pkeep, n_epochs, batch_size)
 
 
 
